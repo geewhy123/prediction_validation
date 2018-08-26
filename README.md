@@ -1,4 +1,4 @@
-# Table of Contents
+ # Table of Contents
 1. [Introduction](README.md#introduction)
 1. [Challenge summary](README.md#challenge-summary)
 1. [Details of challenge](README.md#details-of-challenge)
