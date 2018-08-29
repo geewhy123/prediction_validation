@@ -9,7 +9,7 @@
 using namespace std;
 
 void rLine(string in, int& t, string& sym, double& price){
-  //cout << "Begin func: " << in << endl;
+  cout << "Begin func: " << in << endl;
   string delim = "|";
   size_t pos = 0;
   string token;
@@ -94,7 +94,7 @@ void build(string filename, vector< map<string,double> > &out){
     
     //    do{
       rLine(line,t,sym,price);
-      //cout << t << "," << sym << "," << price << endl;
+      cout << t << "," << sym << "," << price << endl;
       //actual[make_pair(t,sym)] = price;
       //actual[t-1][sym] = price;
 
@@ -103,19 +103,19 @@ void build(string filename, vector< map<string,double> > &out){
 	map<string,double> temp;
         temp[sym] = price;
         actual.push_back(temp);
-	//cout << "First element" << endl;
+	cout << "First element" << endl;
       }
       else{
 	if(t == n ){ 
 	  //actual[t-1][sym] = price;
 	  actual.back()[sym] = price;
-	  //cout << "added to " << t-1 << endl;
+	  cout << "added to " << t-1 << endl;
 	}
 	else{
 	  map<string,double> temp;
 	  temp[sym] = price;
 	  actual.push_back(temp);
-	  //cout << "pushed to back"<< endl;
+	  cout << "pushed to back"<< endl;
 	  n = t;
 	}
       }
@@ -136,7 +136,7 @@ double calcTotErrorHour(map<string,double> actual,map<string,double> predicted,i
     if(it2!= predicted.end()){
       err += fabs(it->second - it2->second);
       nSamples++;
-      //cout << it->second << ":" <<  it2->second << "=" << err << endl;
+      cout << it->second << ":" <<  it2->second << "=" << err << endl;
     }
   }
   //  err /= n;
@@ -189,7 +189,7 @@ int main(int argc, char* argv[]){
 
   
   int nDiv = actual.size() - window+1;
-  //cout << "nDIV" << nDiv<<endl;
+  cout << "nDIV" << nDiv<<endl;
 
   
 
@@ -209,7 +209,7 @@ int main(int argc, char* argv[]){
     for(int j=0; j < window; j++){
       int nSamples;
       err += calcTotErrorHour(actual[t],predicted[t],nSamples);
-      //cout << nSamples << ":" << err << endl;
+      cout << nSamples << ":" << err << endl;
       nTotSamples += nSamples;
       t++;
     }
