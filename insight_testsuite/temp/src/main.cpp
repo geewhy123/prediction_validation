@@ -1,3 +1,7 @@
+// Right now works as tested, to within +/- 0.01, as update describes.
+//edge cases like empty files, etc
+
+
 #include <sstream>
 #include <string>
 #include <iostream>
@@ -8,37 +12,39 @@
 #include <iomanip>
 using namespace std;
 
+
+// Function that reads one line in the data from a specified file (actual or predicted)
+// Arguments: string in - input file string
+//            int & t - will contain time (hour), upon exiting function
+//            string& sym - will contain ticker symbol, upon exiting function
+//            double& price - will containg price, upon exiting function
+// Return: None
 void rLine(string in, int& t, string& sym, double& price){
-  //cout << "Begin func: " << in << endl;
-  string delim = "|";
-  size_t pos = 0;
-  string token;
-  //while((pos = in.find(delim)) != string::npos){
-    pos = in.find(delim);
-    token = in.substr(0,pos);
-    //    cout << token << endl;
-    stringstream ss1(token);
-    ss1 >> t;
-    //cout << t;
-    in.erase(0,pos+delim.length());
-
-    //loop 
-    pos = in.find(delim);
-    sym = in.substr(0,pos);
-    stringstream ss2(sym);
-    //cout << sym;
-    in.erase(0,pos+delim.length());
-
-
-    //}
-    stringstream ss3(in);
-    ss3 >> price;
-    //cout << price  << endl;
   
+  string delim = "|"; //pipe delimited
+  size_t pos = 0; 
+  string token;
+  // splices line into three parts : time|ticker|price
+  pos = in.find(delim);
+  token = in.substr(0,pos);
+  
+  stringstream ss1(token);
+  ss1 >> t;
 
-
+  in.erase(0,pos+delim.length()); //second part
+  pos = in.find(delim);
+  sym = in.substr(0,pos);
+  stringstream ss2(sym);
+  
+  in.erase(0,pos+delim.length()); //third part
+  stringstream ss3(in);
+  ss3 >> price;
+  
 }
 
+// Function used for testing, prints out the whole vector of maps
+// Arguments:  vector<map<string,double> > vect - vector of maps for time,ticker,price data
+// Return: none
 void printAll(vector<map<string,double> > vect){
   cout << "printing whole vector of maps:" <<endl;
   for(int i=0; i < vect.size(); i++){
@@ -46,118 +52,84 @@ void printAll(vector<map<string,double> > vect){
     
     for (std::map<string,double>::iterator it=vect[i].begin(); it!=vect[i].end(); ++it)
       std::cout << it->first << " => " << it->second << '\n';
-
   }
-
+  
 }
 
-
+// Build the vector of maps for the data. Each element of the vector is for a specific time,  
+// the keys are the ticker, and the values are the prices
+// Arguments: string filename - input file name
+//            vector<map<string,double> > & out - vector of maps
+// Return: none
 void build(string filename, vector< map<string,double> > &out){
 
-  /*
-  //  ifstream file("../insight_testsuite/tests/test_0/input/window.txt");
-  ifstream file(filename + "window.txt");
-  string line;
-  int window;
-  while (std::getline(file, line)) {
-    // line contains the current line
-    //cout << line;
-    stringstream ss(line);
-    ss >> window;
-  }
-  */
-  //array of maps (only size ~ window?)                                                                                                                                         
-  //map<string,double> actual[window];
-  //map<pair<int,string>,double> actual;
   vector <map<string,double> > actual;
-
-  //actual[0]["ATAYJP"] = 25.74;
-  //cout << actual[0]["ATAYJP"];
-  //  cout << window;  
-  
   string line;
-
   int t;
   string sym;
   double price;
-  //  ifstream actfile("../insight_testsuite/tests/test_0/input/actual.txt");
-  //ifstream actfile(filename + "actual.txt");
+
   ifstream actfile(filename);
   int n=1;
-  //int n=54;
-  while (std::getline(actfile, line)) {
-    //cout << "Time = " << n+1 << endl;
-    // line contains the current line                                                                                                                                         
-    //    cout << line << endl;
-    
+  
+  while (std::getline(actfile, line)) { //loop over each line
+    rLine(line,t,sym,price); //read line by line
 
-    
-    //    do{
-      rLine(line,t,sym,price);
-      //cout << t << "," << sym << "," << price << endl;
-      //actual[make_pair(t,sym)] = price;
-      //actual[t-1][sym] = price;
-
-      //      cout << t<< ":" << n << endl;
-      if(actual.size() == 0){
+    if(actual.size() == 0){ //first element, push back
+      map<string,double> temp;
+      temp[sym] = price;
+      actual.push_back(temp);
+    }
+    else{ //existing vector element
+      if(t == n ){ 
+	actual.back()[sym] = price; //add to current map
+      }
+      else{ //next time, create new map and append it to the vector
 	map<string,double> temp;
-        temp[sym] = price;
-        actual.push_back(temp);
-	//cout << "First element" << endl;
+	temp[sym] = price;
+	actual.push_back(temp);
+	n = t;
       }
-      else{
-	if(t == n ){ 
-	  //actual[t-1][sym] = price;
-	  actual.back()[sym] = price;
-	  //cout << "added to " << t-1 << endl;
-	}
-	else{
-	  map<string,double> temp;
-	  temp[sym] = price;
-	  actual.push_back(temp);
-	  //cout << "pushed to back"<< endl;
-	  n = t;
-	}
-      }
-  }
-  out = actual;
-  //  printAll(out);
-}
-
-double calcTotErrorHour(map<string,double> actual,map<string,double> predicted,int &nSamples){
-  //cout << "begin error for one time: " << endl;
-  double err =0;
-  nSamples = 0;
-  std::map<string,double>::iterator it2;
-
-  for (std::map<string,double>::iterator it=actual.begin(); it!=actual.end(); ++it){
-    //std::cout << it->first << " => " << it->second << '\n';
-    it2 = predicted.find(it->first);
-    if(it2!= predicted.end()){
-      err += fabs(it->second - it2->second);
-      nSamples++;
-      //cout << it->second << ":" <<  it2->second << "=" << err << endl;
     }
   }
-  //  err /= n;
-  return err;
+  out = actual;
+
 }
 
+// Calculates the total error for a given time. Valid samples counted only if in both actual AND predicted
+// Arguments: map<string,double> actual - map containint actual values for the current time
+//            map<string,double> predicted - map containing predicted values for the current time
+//            int &nSamples - will contain number of valid samples, upon returning from function
+// Return: total error (|actual-predicted|) - double
+double calcTotErrorHour(map<string,double> actual,map<string,double> predicted,int &nSamples){
+
+  double err =0;
+  nSamples = 0;
+  std::map<string,double>::iterator it2; //iterator for predicted
+
+  for (std::map<string,double>::iterator it=actual.begin(); it!=actual.end(); ++it){//iterate through actual map
+    it2 = predicted.find(it->first); //find ticker in predicted
+    if(it2!= predicted.end()){ //if it exists in both
+      err += fabs(it->second - it2->second);
+      nSamples++;
+    }
+  }
+  return err; //total error
+
+}
+
+// Custom function to round to two decimal places
+// Arguments : double var - value to round
+// Return : rounded to two decimal places - double
 double round2(double var)
 {
   double value = (int)(var * 100 + .5);
   return (double)value / 100;
 }
  
-
-
+// Function main, driver for whole process
 int main(int argc, char* argv[]){
-  //window,act,pred,out
-
-
-  //window
-  //   ifstream file("../insight_testsuite/tests/test_0/input/window.txt");                                                                                                  
-  //  ifstream file("../insight_testsuite/tests/test_1/input/window.txt");                                                                                                   
+  //read window
   ifstream file(argv[1]);
 
   string line;
@@ -167,68 +139,48 @@ int main(int argc, char* argv[]){
     ss >> window;         
   }
 
-  //    string filename = "../insight_testsuite/tests/test_0/input/actual.txt";
-  //    string filename = "../insight_testsuite/tests/test_1/input/actual.txt";
-    string filename = argv[2];
+  //read actual
+  string filename = argv[2];
   vector <map<string,double> > actual;
   build(filename,actual);
-  //printAll(actual);
-  //exit(1);
-
-  //    filename = "../insight_testsuite/tests/test_0/input/predicted.txt";
-  //  filename = "../insight_testsuite/tests/test_1/input/predicted.txt";
+  
+  //read predicted
   filename = argv[3];
   vector <map<string,double> > predicted;
   build(filename,predicted);
-  //printAll(predicted);
-
+  
+  //if window is too big..
   if(window > max(predicted.size(),actual.size())){
     cout << "Warning: window larger than predicted, actual, setting window to max";
     window = max(predicted.size(),actual.size());
   }
 
-  
+  //number of divisions to calculate
   int nDiv = actual.size() - window+1;
-  //cout << "nDIV" << nDiv<<endl;
 
-  
-
+  //preparing output file
   ofstream clearFile;
-  //   clearFile.open("../insight_testsuite/tests/test_0/output/comparison.txt");
-  //clearFile.open("../insight_testsuite/tests/test_1/output/comparison2.txt");
   clearFile.open(argv[4]);
-  
   clearFile.close();
-
-  for(int k = 0; k <nDiv;k++){
-    //    int k=0;
-
+  
+  for(int k = 0; k <nDiv;k++){//for each window (division)
     int t = k;
     int nTotSamples =0;
     double err = 0;
     for(int j=0; j < window; j++){
       int nSamples;
       err += calcTotErrorHour(actual[t],predicted[t],nSamples);
-      //cout << nSamples << ":" << err << endl;
       nTotSamples += nSamples;
       t++;
     }
 
-    //    cout << err/nTotSamples;
+    //write comparison file
     ofstream myfile;
-    //        myfile.open("../insight_testsuite/tests/test_0/output/comparison.txt",std::ios_base::app);
-    //	myfile.open("../insight_testsuite/tests/test_1/output/comparison2.txt",std::ios_base::app);
-	myfile.open(argv[4],std::ios_base::app);
+    myfile.open(argv[4],std::ios_base::app);
     myfile << k+1 << "|" << k+window << "|";
-
-
-
-        myfile <<std::fixed << std::setprecision(2) << round2(err/nTotSamples)<<endl;
-    //    myfile  << (err/nTotSamples)<<endl;
-
+    myfile <<std::fixed << std::setprecision(2) << round2(err/nTotSamples)<<endl;
     myfile.close();
-    }
-
-    //  cout << std::fixed << std::setprecision(2) << round2(2.1049)<<endl;
-    //cout << std::fixed << std::setprecision(2) << round2(2.1050)<<endl;
+  }
+  
+  return 0;
 }
